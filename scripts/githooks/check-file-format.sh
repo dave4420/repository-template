@@ -75,10 +75,12 @@ function main-invocation() {
   esac
 
   if command -v editorconfig > /dev/null 2>&1 && ! is-arg-true "${FORCE_USE_DOCKER:-false}"; then
-    filter="$filter" dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh --natively
+    method=--natively
   else
-    filter="$filter" dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh --via-docker
+    method=--via-docker
   fi
+
+  filter="$filter" dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh "$method"
 }
 
 # Run editorconfig natively.
