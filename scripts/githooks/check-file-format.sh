@@ -56,23 +56,9 @@ function main-invocation() {
   is-arg-true "${dry_run:-false}" && dry_run_opt="--dry-run"
 
   check=${check:-working-tree-changes}
-  case $check in
-    "all")
-      filter="git ls-files"
-      ;;
-    "staged-changes")
-      filter="git diff --diff-filter=ACMRT --name-only --cached"
-      ;;
-    "working-tree-changes")
-      filter="git diff --diff-filter=ACMRT --name-only"
-      ;;
-    "branch")
-      filter="git diff --diff-filter=ACMRT --name-only ${BRANCH_NAME:-origin/main}"
-      ;;
-    *)
-      echo "Unrecognised check mode: $check" >&2 && exit 1
-      ;;
-  esac
+  if ! declare -f "list-files-to-check--$check" >/dev/null 2>&1 ; then
+    echo "Unrecognised check mode: $check" >&2 && exit 1
+  fi
 
   if command -v editorconfig > /dev/null 2>&1 && ! is-arg-true "${FORCE_USE_DOCKER:-false}"; then
     method=--natively
@@ -80,24 +66,24 @@ function main-invocation() {
     method=--via-docker
   fi
 
-  filter="$filter" dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh "$method"
+  dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh "$method" $(list-files-to-check--"$check")
 }
 
 # Run editorconfig natively.
 # Arguments (provided as environment variables):
 #   dry_run_opt=[dry run option]
-#   filter=[git command to filter the files to check]
+# Arguments (provided as positional parameters): files to check
 function main-tool-wrapper--natively() {
 
   # shellcheck disable=SC2046,SC2086
   editorconfig \
-    --exclude '.git/' $dry_run_opt $($filter)
+    --exclude '.git/' $dry_run_opt "$@"
 }
 
 # Run editorconfig in a Docker container.
 # Arguments (provided as environment variables):
 #   dry_run_opt=[dry run option]
-#   filter=[git command to filter the files to check]
+# Arguments (provided as positional parameters): files to check
 function main-tool-wrapper--via-docker() {
 
   # shellcheck disable=SC1091
@@ -111,7 +97,25 @@ function main-tool-wrapper--via-docker() {
   docker run --rm --platform linux/amd64 \
     --volume "$PWD":/check \
     "$image" \
-      sh -c "ec --exclude '.git/' $dry_run_opt \$($filter) /dev/null"
+      sh -c "ec --exclude '.git/' $dry_run_opt $(printf '%q ' "$@") /dev/null"
+}
+
+# ==============================================================================
+
+function list-files-to-check--all() {
+  git ls-files
+}
+
+function list-files-to-check--staged-changes() {
+  git diff --diff-filter=ACMRT --name-only --cached
+}
+
+function list-files-to-check--working-tree-changes() {
+  git diff --diff-filter=ACMRT --name-only
+}
+
+function list-files-to-check--branch() {
+  git diff --diff-filter=ACMRT --name-only ${BRANCH_NAME:-origin/main}
 }
 
 # ==============================================================================
