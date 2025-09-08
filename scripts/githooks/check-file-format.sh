@@ -41,6 +41,14 @@ set -euo pipefail
 # ==============================================================================
 
 function main() {
+  if [[ ${#@} != 0 ]] && declare -f "main-tool-wrapper$1" >/dev/null 2>&1 ; then
+    "main-tool-wrapper$1" "${@:2}"
+  else
+    main-invocation "$@"
+  fi
+}
+
+function main-invocation() {
 
   cd "$(git rev-parse --show-toplevel)"
 
@@ -67,9 +75,9 @@ function main() {
   esac
 
   if command -v editorconfig > /dev/null 2>&1 && ! is-arg-true "${FORCE_USE_DOCKER:-false}"; then
-    filter="$filter" dry_run_opt="${dry_run_opt:-}" run-editorconfig-natively
+    filter="$filter" dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh --natively
   else
-    filter="$filter" dry_run_opt="${dry_run_opt:-}" run-editorconfig-in-docker
+    filter="$filter" dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh --via-docker
   fi
 }
 
@@ -77,7 +85,7 @@ function main() {
 # Arguments (provided as environment variables):
 #   dry_run_opt=[dry run option]
 #   filter=[git command to filter the files to check]
-function run-editorconfig-natively() {
+function main-tool-wrapper--natively() {
 
   # shellcheck disable=SC2046,SC2086
   editorconfig \
@@ -88,7 +96,7 @@ function run-editorconfig-natively() {
 # Arguments (provided as environment variables):
 #   dry_run_opt=[dry run option]
 #   filter=[git command to filter the files to check]
-function run-editorconfig-in-docker() {
+function main-tool-wrapper--via-docker() {
 
   # shellcheck disable=SC1091
   source ./scripts/docker/docker.lib.sh
