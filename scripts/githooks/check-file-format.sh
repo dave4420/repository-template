@@ -41,8 +41,8 @@ set -euo pipefail
 # ==============================================================================
 
 function main() {
-  if [[ ${#@} != 0 ]] && declare -f "main-tool-wrapper$1" >/dev/null 2>&1 ; then
-    "main-tool-wrapper$1" "${@:2}"
+  if [[ ${#@} != 0 ]] && declare -f "run-editorconfig$1" >/dev/null 2>&1 ; then
+    "run-editorconfig$1" "${@:2}"
   else
     main-invocation "$@"
   fi
@@ -78,7 +78,7 @@ function main-invocation() {
 # Arguments (provided as environment variables):
 #   dry_run_opt=[dry run option]
 # Arguments (provided as positional parameters): files to check
-function main-tool-wrapper--natively() {
+function run-editorconfig--natively() {
 
   # shellcheck disable=SC2046,SC2086
   editorconfig \
@@ -89,7 +89,7 @@ function main-tool-wrapper--natively() {
 # Arguments (provided as environment variables):
 #   dry_run_opt=[dry run option]
 # Arguments (provided as positional parameters): files to check
-function main-tool-wrapper--via-docker() {
+function run-editorconfig--via-docker() {
 
   # shellcheck disable=SC1091
   source ./scripts/docker/docker.lib.sh
