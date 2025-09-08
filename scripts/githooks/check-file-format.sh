@@ -71,7 +71,7 @@ function main-invocation() {
   # 2MB on Linux but only 256KB on macOS. Assume a maximum filename
   # length of 200 characters and limiting us to batches of 1000 files
   # gives us a bit of a safety margin.
-  dry_run_opt="${dry_run_opt:-}" xargs --max-args=1000 --no-run-if-empty scripts/githooks/check-file-format.sh "$method"
+  dry_run_opt="${dry_run_opt:-}" xargs -0 --max-args=1000 --no-run-if-empty scripts/githooks/check-file-format.sh "$method"
 }
 
 # Run editorconfig natively.
@@ -104,20 +104,23 @@ function main-tool-wrapper--via-docker() {
 
 # ==============================================================================
 
+# These all produce filenames terminated by a NUL character, so that we
+# can handle filenames that contain spaces.
+
 function list-files-to-check--all() {
-  git ls-files
+  git ls-files -z
 }
 
 function list-files-to-check--staged-changes() {
-  git diff --diff-filter=ACMRT --name-only --cached
+  git diff -z --diff-filter=ACMRT --name-only --cached
 }
 
 function list-files-to-check--working-tree-changes() {
-  git diff --diff-filter=ACMRT --name-only
+  git diff -z --diff-filter=ACMRT --name-only
 }
 
 function list-files-to-check--branch() {
-  git diff --diff-filter=ACMRT --name-only ${BRANCH_NAME:-origin/main}
+  git diff -z --diff-filter=ACMRT --name-only ${BRANCH_NAME:-origin/main}
 }
 
 # ==============================================================================
