@@ -71,7 +71,7 @@ function main-invocation() {
   # 2MB on Linux but only 256KB on macOS. Assume a maximum filename
   # length of 200 characters and limiting us to batches of 1000 files
   # gives us a bit of a safety margin.
-  dry_run_opt="${dry_run_opt:-}" xargs --max-args=1000 scripts/githooks/check-file-format.sh "$method"
+  dry_run_opt="${dry_run_opt:-}" xargs --max-args=1000 --no-run-if-empty scripts/githooks/check-file-format.sh "$method"
 }
 
 # Run editorconfig natively.
@@ -96,13 +96,10 @@ function main-tool-wrapper--via-docker() {
 
   # shellcheck disable=SC2155
   local image=$(name=mstruebing/editorconfig-checker docker-get-image-version-and-pull)
-  # We use /dev/null here as a backstop in case there are no files in the state
-  # we choose. If the filter comes back empty, adding `/dev/null` onto it has
-  # the effect of preventing `ec` from treating "no files" as "all the files".
   docker run --rm --platform linux/amd64 \
     --volume "$PWD":/check \
     "$image" \
-      sh -c "ec --exclude '.git/' $dry_run_opt $(printf '%q ' "$@") /dev/null"
+      sh -c "ec --exclude '.git/' $dry_run_opt $(printf '%q ' "$@")"
 }
 
 # ==============================================================================
