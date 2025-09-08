@@ -66,7 +66,12 @@ function main-invocation() {
     method=--via-docker
   fi
 
-  dry_run_opt="${dry_run_opt:-}" scripts/githooks/check-file-format.sh "$method" $(list-files-to-check--"$check")
+  list-files-to-check--"$check" |
+  # Maximum size of command line and environment combined is typically
+  # 2MB on Linux but only 256KB on macOS. Assume a maximum filename
+  # length of 200 characters and limiting us to batches of 1000 files
+  # gives us a bit of a safety margin.
+  dry_run_opt="${dry_run_opt:-}" xargs --max-args=1000 scripts/githooks/check-file-format.sh "$method"
 }
 
 # Run editorconfig natively.
